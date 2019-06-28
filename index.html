@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<head>
+ <meta charset="utf-8">
+ <title>Cartographic symbol generator</title>
+ <link media='screen' href='css/cartosym.css' type='text/css' rel='stylesheet' />
+ <script src="js/svglib.js"></script>
+</head>
+<body>
+ <div id='cont'>
+  <div id='header'>
+   <h1>Cartographic symbol generator</h1>
+  </div>
+
+  <div id='main'>
+
+   <style type='text/css'>
+svg text {
+	font-family: Georgia,Palatino,'Palatino Linotype',serif; 
+	font-size: 13px;
+	opacity: 0.6;
+}
+
+svg .bar, .square, .circle, .sphere, .shadow {
+	stroke: none;
+	fill: #BF8A58;
+}
+
+svg .square {
+	fill: #BD58BF;
+}
+
+svg .circle {
+	fill: #59BF58;
+}
+
+svg .sphere {
+	fill: #588DBF;
+}
+
+svg .shadow {
+	fill: #eee;
+}
+
+   </style>
+
+   <div class='w1'>
+<h2>Problem</h2>
+<p>Too often are values displayed incorrectly as symbols. While bar symbols and the values they represent increase one dimensionally, icons, circles and volumes, such as spheres, <em>depict values exponentially larger than their change in height</em>. These errors occur when individuals oblivious to this phenomenon scale multidimensional symbols based on their heights and as a result display values that are orders of magnitude too large.</p>
+
+<h2>Example</h2>
+<p><img src='imgs/BadCartoExample.png'></p>
+
+<h2>Solution</h2>
+<p>The tool below allows you to submit your data, submit and visualize their correct relative representations as bars, squares, circles and spheres. These can be easily imported into Adobe Illustrator, Corel Draw or InkScape. Click the <em>Download SVG file</em> button to save the representations to your computer and import them into your preferred graphics program.</p>
+
+<h2>Selecting the correct symbol type</h2>
+<p>The goal of a symbol is to communicate a value, either nominal (existence), ordinal (rank), interval (difference) or rational (absolute value). These symbols should only be used for rational values. Whether we should use a linear, area or volume symbol depends on the relative range of the values (A map with the values 1, 2, 3, 4 will appear the same as one with 1,000, 2,000, 3,000, 4,000). If the values little variation then bar symbols may be best (although boring). Area symbols are better for moderate value ranges and volumetric symbols for larger value ranges. The question of which symbol type to choose simply comes down to <em>noticeable difference</em>. You wish your different values to appear noticeably different. If you use spheres to display values with little variation it will be rather difficult to tell them apart. Alternatively if you have a very wide range of values and use the bar symbols, the small value symbols will not even be visible. Click on the three examples below to see how the range of values changes the relative appearance of the different symbols.</p>
+
+<p><a href="javascript:document.getElementById('datainput').value = '1 2 3 4 5 6 7 8 9 10';CS.readvalues()" >Small range (1-10)</a></p>
+<p><a href="javascript:document.getElementById('datainput').value = '1 4 9 16 25 36 49 64 81 100';CS.readvalues()" >Medium range (1-100)</a></p>
+<p><a href="javascript:document.getElementById('datainput').value = '1 8 27 64 125 216 343 512 729 1000';CS.readvalues()" >Large range (1-1000)</a></p>
+   </div>
+
+   <div class='w1'>
+<h2>Submit data</h2>
+<p>Paste your data in the text area below. Note that all values should be separated by white spaces (new line, space, tab) or commas.</p>
+<textarea id='datainput'>6.25 12.5 25 50 100 200 400</textarea>
+<input type='button' id='inputbutton' value='Create symbols'>
+   </div>
+
+
+
+   <div class='w1'><h2>Cartographic symbols</h2>
+   <svg id='svga1' width='800' height='200'></svg>
+
+    <p>Note that effects should be added to the spheres in your preferred graphics editor to make their appearance more sphere like. Using gradients, glossiness and shadows to simulate lighting is recommended.</p>
+    <p>
+     <form action='export.php' method='POST'>
+      <input type='hidden' name='content' id='svgexport' value=''>
+      <input type='submit' id='exportbutton' value='Download SVG file'> (only works on a PHP enabled server - not github) 
+     </form>
+    </p>
+   </div>
+
+  </div><!-- end of main -->
+
+  <div id='footer' class='w1'>
+   <p>Cyrille M&eacute;dard de Chardon 2011</p>
+  </div>
+
+ </div><!-- end of cont -->
+
+</body>
+
+<script type='text/javascript'>
+
+//clock works
+CS = {
+	data: ''
+};
+
+//JavaScript: The Good Parts (Douglas Crockford)
+//allows us to declare new object 'method' without referring to the 'prototype'
+Function.prototype.method = function (name, func) {
+	if (!this.prototype[name]) {
+		this.prototype[name] = func;
+		return this;
+	}
+};
+
+Array.method('max', function () {
+	return Math.max.apply(0, this);
+});
+
+Array.method('min', function () {
+	return Math.min.apply(0,this);
+});
+
+
+CS.readvalues = function() {
+	var data, del, svg_target, svgcw, svgch, i, dlen, dmax, categs, pad, dtl;
+
+	//svg target
+	svg_target = 'svga1';
+
+	//clean up, delete all existing svg objects in canvas
+	//document.getElementById('svga1').childNodes[0].id
+    while ( document.getElementById(svg_target).childNodes.length > 0 ) {
+		JSVG.deleteObj(document.getElementById(svg_target).firstChild.id);
+	}
+
+	//Create export string header
+	CS.export = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="' + JSVG.getAttr(svg_target, 'width') + '" height="' + JSVG.getAttr(svg_target, 'height') + '"><style type="text/css"> svg text { font-family: Georgia,Palatino,"Palatino Linotype",serif; font-size: 13px; } svg .bar, .square, .circle, .sphere, .shadow { stroke: none; fill: #BF8A58; } svg .square { fill: #BD58BF; } svg .circle { fill: #59BF58; } svg .sphere { fill: #588DBF; } svg .shadow { fill: #eee; } </style>';
+
+
+	//Prepare/read data
+	//read data in textfield
+	data = document.getElementById('datainput').value;
+
+	//remove all invalid characters (letters)
+	data = data.replace(/[a-zA-Z]/,'');
+
+	//replace all separation characters with a single space
+	data = data.replace(/[\s,\r\n]+/g,' ');
+
+	//split into individual array items
+	data = data.split(/\s/);
+
+	dlen = data.length;
+	//convert all strings to floats
+	for ( i = 0; i < dlen; i += 1 ) {
+		if ( data[i].length > 0 ) {
+			data[i] = parseFloat( data[i] );
+		}
+	}
+
+	//finished data cleaning, reassign to global
+	CS.data = data;
+
+
+	//Prep to display and create shapes
+	//distance to keep away from svg canvas edges
+	pad = 5;
+	//get dimensions of svg canvas
+	svgcw = JSVG.getAttr(svg_target, 'width') - 2 * pad;
+	svgch = JSVG.getAttr(svg_target, 'height') - 2 * pad;
+
+
+	//call Array.max() using augmented type method
+	dmax = data.max();
+	
+	//the number of representations ( plus 1 )
+	categs = 4 + 1;
+
+	//create bars
+	for ( i = 0; i < dlen; i += 1 ) {
+		//bar graphs
+		dtl = [pad + svgcw / dlen * ( i + 0.5 ) - 5, //x
+			pad + svgch / categs - svgch / categs * data[i] / dmax, //y
+			10, //w
+			svgch / categs * data[i] / dmax]; //h
+		JSVG.createRect('svga1', 'bar' + i, dtl[0], dtl[1], dtl[2], dtl[3], 'bar', {});
+		CS.export += '<rect class="bar" x="' + dtl[0] + '" y="' + dtl[1] + '" width="' + dtl[2] + '" height="' + dtl[3] + '" />';
+
+		//square symbol
+		dtl = [pad + svgcw / dlen * ( i + 0.5 ) - Math.sqrt(data[i]) / Math.sqrt(dmax) * svgch / categs / 2, //x
+			pad + svgch * 2 / categs - Math.sqrt(data[i]) / Math.sqrt(dmax) * svgch / categs + pad * 2, //y
+			Math.sqrt(data[i]) / Math.sqrt(dmax) * svgch / categs,//w
+			Math.sqrt(data[i]) / Math.sqrt(dmax) * svgch / categs]; //h
+		JSVG.createRect('svga1', 'square' + i, dtl[0], dtl[1], dtl[2], dtl[3], 'square', {});
+		CS.export += '<rect class="square" x="' + dtl[0] + '" y="' + dtl[1] + '" width="' + dtl[2] + '" height="' + dtl[3] + '" />';
+
+		//circle
+		dtl = [pad + svgcw / dlen * ( i + 0.5 ), //x
+			pad + svgch * 3 / categs, //y
+			Math.sqrt(data[i]/Math.PI) / Math.sqrt(dmax/Math.PI) * svgch / 2 / categs]; //r
+		JSVG.createCirc('svga1', 'circle' + i, dtl[0], dtl[1], dtl[2], 'circle', {});
+		CS.export += '<circle class="circle" cx="' + dtl[0] + '" cy="' + dtl[1] + '" r="' + dtl[2] + '" />';
+
+		//sphere
+		//create ellipse under sphere to give it the appearance of volume
+		dtl = [pad + svgcw / dlen * ( i + 0.5 ), //x
+			pad + svgch * 4 / categs + 2 * pad + (Math.pow(data[i] * 3 / 4 / Math.PI, 1/3) / Math.pow(dmax * 3 / 4 / Math.PI, 1/3) * svgch / 2 / categs), //y
+			Math.pow(data[i] * 3 / 4 / Math.PI, 1/3) / Math.pow(dmax * 3 / 4 / Math.PI, 1/3) * svgch / 2 / categs, //rx
+			Math.pow(data[i] * 3 / 4 / Math.PI, 1/3) / Math.pow(dmax * 3 / 4 / Math.PI, 1/3) * svgch / 2 / categs / 2]; //ry
+		JSVG.createEllipse('svga1', 'shadow' + i, dtl[0], dtl[1], dtl[2], dtl[3], 'shadow', {});
+		CS.export += '<ellipse class="shadow" cx="' + dtl[0] + '" cy="' + dtl[1] + '" rx="' + dtl[2] + '" ry="' + dtl[3] + '" />';
+
+		//actual sphere/circle
+		dtl = [pad + svgcw / dlen * ( i + 0.5 ), //x
+			pad + svgch * 4 / categs + 2 * pad, //y
+			Math.pow(data[i] * 3 / 4 / Math.PI, 1/3) / Math.pow(dmax * 3 / 4 / Math.PI, 1/3) * svgch / 2 / categs]; //r
+		JSVG.createCirc('svga1', 'sphere' + i, dtl[0], dtl[1], dtl[2], 'sphere', {});
+		CS.export += '<circle class="sphere" cx="' + dtl[0] + '" cy="' + dtl[1] + '" r="' + dtl[2] + '" />';
+	}
+
+	//for labels
+	categs = categs - 1;
+
+	//Add labels to categoris
+	JSVG.createText('svga1', 't1', 10, 0 * svgch / categs + 15, 'Bars (linear)', '');
+	JSVG.createText('svga1', 't2', 10, 1 * svgch / categs + 15, 'Squares (area)', '');
+	JSVG.createText('svga1', 't3', 10, 2 * svgch / categs + 15, 'Circles (area)', '');
+	JSVG.createText('svga1', 't4', 10, 3 * svgch / categs + 15, 'Spheres (volume)', '');
+
+	//addon to export string
+	CS.export += '<text id="t1" class="" x="10" y="15">Bars (linear)</text><text id="t2" class="" x="10" y="62.5">Squares (area)</text><text id="t3" class="" x="10" y="110">Circles (area)</text><text id="t4" class="" x="10" y="157.5">Spheres (volume)</text>';
+
+	//Finish export string
+	CS.export += '</svg>';
+
+	//add value string to export form	
+	document.getElementById('svgexport').value = CS.export;
+
+};
+
+document.getElementById('inputbutton').addEventListener("click", CS.readvalues);
+
+</script>
+</html>
