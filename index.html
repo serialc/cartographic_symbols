@@ -64,7 +64,7 @@ svg text {
                     </style>
 
                     <div id="svgcontainer">
-                        <svg id='svgel' width='800' height='200'>
+                        <svg id='svgel' width='800' height='250'>
                             <defs>
                             <radialGradient id="sphereGradient" fx="35%" fy="35%">
                             <stop stop-color="#ffffff" offset="0%" />
@@ -122,9 +122,9 @@ svg text {
             svg_target = 'svga1';
 
             //clean up, delete all existing svg objects in canvas
-            //document.getElementById('svga1').childNodes[0].id
-            while ( document.getElementById(svg_target).childNodes.length > 0 ) {
-                JSVG.deleteObj(document.getElementById(svg_target).firstChild.id);
+            svg_target_el = document.getElementById(svg_target);
+            while (svg_target_el.lastChild) {
+                svg_target_el.removeChild(svg_target_el.lastChild);
             }
 
             //Prepare/read data
@@ -164,49 +164,70 @@ svg text {
             dmax = data.max();
 
             //the number of representations ( plus 1 )
-            categs = 4 + 1;
+            categs = 5 + 1;
 
-            //create bars
+            //create symbols
             for ( i = 0; i < dlen; i += 1 ) {
-                //bar graphs
-                dtl = [pad + svgcw / dlen * ( i + 0.5 ) - 5, //x
-                    pad + svgch / categs - svgch / categs * data[i] / dmax, //y
+
+                // bar graphs
+                let elsize = svgch / categs * data[i] / dmax;
+
+                JSVG.createRect(svg_target, 'bar' + i,
+                    pad + svgcw / dlen * ( i + 0.5 ) - 5, //x
+                    pad + svgch / categs * 1 - elsize, //y
                     10, //w
-                    svgch / categs * data[i] / dmax]; //h
-                JSVG.createRect('svga1', 'bar' + i, dtl[0], dtl[1], dtl[2], dtl[3], 'bar', {});
+                    elsize,  //h
+                    'bar', {});
                 JSVG.setAttr('bar' + i, 'fill', '#BF8A58');
 
-                //square symbol
-                dtl = [pad + svgcw / dlen * ( i + 0.5 ) - Math.sqrt(data[i]) / Math.sqrt(dmax) * svgch / categs / 2, //x
-                    pad + svgch * 2 / categs - Math.sqrt(data[i]) / Math.sqrt(dmax) * svgch / categs + pad * 2, //y
-                    Math.sqrt(data[i]) / Math.sqrt(dmax) * svgch / categs,//w
-                    Math.sqrt(data[i]) / Math.sqrt(dmax) * svgch / categs]; //h
-                JSVG.createRect('svga1', 'square' + i, dtl[0], dtl[1], dtl[2], dtl[3], 'square', {});
+                // square symbol
+                elsize = Math.sqrt(data[i]) / Math.sqrt(dmax) * svgch / categs;
+
+                JSVG.createRect(svg_target, 'square' + i,
+                    pad + svgcw / dlen * ( i + 0.5 ) - elsize / 2, //x
+                    pad + svgch / categs * 2 - elsize + pad * 2, //y
+                    elsize, //w
+                    elsize, //h
+                    'square', {});
                 JSVG.setAttr('square' + i, 'fill', '#BD58BF');
 
-                //circle
-                dtl = [pad + svgcw / dlen * ( i + 0.5 ), //x
-                    pad + svgch * 3 / categs, //y
-                    Math.sqrt(data[i]/Math.PI) / Math.sqrt(dmax/Math.PI) * svgch / 2 / categs]; //r
-                JSVG.createCirc('svga1', 'circle' + i, dtl[0], dtl[1], dtl[2], 'circle', {});
+                // circle
+                elsize = Math.sqrt(data[i]/Math.PI) / Math.sqrt(dmax/Math.PI) * svgch / 2 / categs;
+
+                JSVG.createCirc(svg_target, 'circle' + i,
+                    pad + svgcw / dlen * ( i + 0.5 ), //x
+                    pad + svgch / categs * 3 - elsize + pad * 4, //y
+                    elsize, //r
+                    'circle', {});
                 JSVG.setAttr('circle' + i, 'fill', '#59BF58');
 
-                //sphere - 2 parts
-                //create ellipse under sphere to give it the appearance of volume
-                let elsize = Math.pow(data[i] * 3 / 4 / Math.PI, 1/3) / Math.pow(dmax * 3 / 4 / Math.PI, 1/3) * svgch / 2 / categs;
-                dtl = [pad + svgcw / dlen * ( i + 0.5 ) + elsize/4, //x
-                    pad + svgch * 4 / categs + 2 * pad + elsize * 0.65, //y
+                // sphere - 2 parts
+                // create shadow/ellipse under sphere to give it the appearance of volume
+                elsize = Math.pow(data[i] * 3 / 4 / Math.PI, 1/3) / Math.pow(dmax * 3 / 4 / Math.PI, 1/3) * svgch / 2 / categs;
+                JSVG.createEllipse(svg_target, 'shadow' + i,
+                    pad + svgcw / dlen * ( i + 0.5 ) + elsize/4, //x
+                    pad + svgch / categs * 4 - elsize * 0.35 + pad * 6, //y
                     elsize, //rx
-                    elsize/2 ]; //ry
-                JSVG.createEllipse('svga1', 'shadow' + i, dtl[0], dtl[1], dtl[2], dtl[3], 'shadow', {});
+                    elsize/2, //ry
+                    'shadow', {});
                 JSVG.setAttr('shadow' + i, 'fill', '#ddd');
 
-                //actual sphere/circle
-                dtl = [pad + svgcw / dlen * ( i + 0.5 ), //x
-                    pad + svgch * 4 / categs + 2 * pad, //y
-                    Math.pow(data[i] * 3 / 4 / Math.PI, 1/3) / Math.pow(dmax * 3 / 4 / Math.PI, 1/3) * svgch / 2 / categs]; //r
-                JSVG.createCirc('svga1', 'sphere' + i, dtl[0], dtl[1], dtl[2], 'sphere', {});
+                // actual sphere/circle
+                // uses same elsize as shadow
+                JSVG.createCirc(svg_target, 'sphere' + i,
+                    pad + svgcw / dlen * ( i + 0.5 ), //x
+                    pad + svgch / categs * 4 - elsize + pad * 6, //y
+                    elsize, //r
+                    'sphere', {});
                 JSVG.setAttr('sphere' + i, 'fill', 'url(#sphereGradient)');
+
+                // values
+                JSVG.createText(svg_target, 'value_text' + i,
+                    pad + svgcw / dlen * ( i + 0.5) , // x
+                    pad + svgch / categs * 5 + pad * 6, // y
+                    data[i], // value
+                    '');
+                JSVG.setAttr('value_text' + i, 'text-anchor', 'middle');
             }
 
             //for labels
@@ -217,6 +238,7 @@ svg text {
             JSVG.createText('svga1', 't2', 10, 1 * svgch / categs + 15, 'Squares (area)', '');
             JSVG.createText('svga1', 't3', 10, 2 * svgch / categs + 15, 'Circles (area)', '');
             JSVG.createText('svga1', 't4', 10, 3 * svgch / categs + 15, 'Spheres (volume)', '');
+            JSVG.createText('svga1', 't5', 10, 4 * svgch / categs + 15, 'Values', '');
 
         };
 
